@@ -1,0 +1,59 @@
+version: '3'
+
+dotenv:
+  - "{{.ENV_FILE}}"
+vars:
+  USER: user
+  BIN_NAME: isu-bin
+  BUILD_DIR: /home/isucon/webapp/go
+  SERVICE_NAME: isu-go.service
+  ENV_FILE: env.sh
+
+  GIT_REPOSIROTY: git@github.com/com3-jp/istmpl
+
+
+  # DB
+  DB_PATH: /etc/mysql
+  DB_CONFIG: /etc/mysql/my.cnf
+  DB_SLOW_LOG: /var/log/mysql/mysql-slow.log
+  DB_SLOW_QUERY_TIME: 1
+  DB_USER: root
+  DB_PASSWORD: password
+
+  # NGINX
+  NGINX_PATH: /etc/nginx
+  NGINX_CONFIG: /etc/nginx/nginx.conf
+  NGINX_ACCESS_LOG: /var/log/nginx/access.log
+
+  # SYSTEMD
+  SYSTEMD_PATH: /etc/systemd/system
+
+  # SYSCTD
+  SYSCTD_PATH: /etc/sysctl.d/
+  SYSCTD_NAME: isu.conf
+
+  # LIMITS
+  LIMITS_PATH: /etc/security/limits.d/
+  LIMITS_NAME: isulimits.conf
+
+
+tasks:
+  # 初期環境セットアップ
+  genkey:
+    - echo -e "Host github.com\n  AddKeysToAgent yes\n  IdentityFile ~/.ssh/isucon\n" > ~/.ssh/config
+    - ssh-keygen -t rsa -b 4096 -C "For ISUCON" -f ~/.ssh/isucon -N ""
+    - cat ~/.ssh/isucon
+  init-repo:
+    cmds:
+      - git config --global init.defaultBranch main
+      - git init
+      - git remote add origin {{.GIT_REPOSITORY}}
+      - git pull origin main
+      - git branch -m main
+      - git branch --set-upstream-to=origin/main main
+      - echo "Setup gitignore and variables in Taskfile.yaml"
+
+  mysql:
+    desc: "Connect to MySQL"
+    cmds:
+      - mysql -u {{.DB_USER}} -p{{.DB_PASSWORD}} --defaults-file={{.DB_CONFIG}}
