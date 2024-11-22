@@ -1,6 +1,5 @@
 .vscode
 .idea
-.vim*
 
 .*
 !.gitignore
@@ -15,9 +14,15 @@ go
 local
 
 !webapp/go
+webapp/*node*
+webapp/*perl*
+webapp/*php*
+webapp/*python*
+webapp/*ruby*
+webapp/*rust*
+webapp/*java*
 
-# 環境変数のファイル名に合わせること
-env.sh
+!env.sh
 
 webapp/node/node_modules
 .cache

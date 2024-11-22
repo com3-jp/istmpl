@@ -3,14 +3,22 @@ version: '3'
 dotenv:
   - "{{.ENV_FILE}}"
 vars:
-  USER: user
-  BIN_NAME: isu-bin
+  USER: isucon
+  BIN_NAME: isupipe-bin
   BUILD_DIR: /home/isucon/webapp/go
-  SERVICE_NAME: isu-go.service
+  SERVICE_NAME: isupipe-go.service
   ENV_FILE: env.sh
 
+  # GIT
   GIT_REPOSIROTY: git@github.com/com3-jp/istmpl
+  GIT_DB_PATH: $HOME/$SERVER_ID/etc/mysql
+  GIT_NGINX_PATH: $HOME/$SERVER_ID/etc/nginx
+  GIT_SERVICE_PATH: $HOME/$SERVER_ID/etc/{{.SERVICE_NAME}}
+  GIT_ENV_FILE: $HOME/$SERVER_ID/{{.ENV_FILE}}
 
+  # ALP
+  ALP_PATH: $HOME/bin/alp
+  ALP_CONFIG: $HOME/tools/alp/config.yml
 
   # DB
   DB_PATH: /etc/mysql
@@ -34,26 +42,119 @@ vars:
 
   # LIMITS
   LIMITS_PATH: /etc/security/limits.d/
-  LIMITS_NAME: isulimits.conf
-
+  LIMITS_NAME: limits.conf
 
 tasks:
-  # 初期環境セットアップ
-  genkey:
-    - echo -e "Host github.com\n  AddKeysToAgent yes\n  IdentityFile ~/.ssh/isucon\n" > ~/.ssh/config
-    - ssh-keygen -t rsa -b 4096 -C "For ISUCON" -f ~/.ssh/isucon -N ""
-    - cat ~/.ssh/isucon
-  init-repo:
+  db:
+    desc: "DB CLI"
     cmds:
-      - git config --global init.defaultBranch main
-      - git init
-      - git remote add origin {{.GIT_REPOSITORY}}
-      - git pull origin main
-      - git branch -m main
-      - git branch --set-upstream-to=origin/main main
-      - echo "Setup gitignore and variables in Taskfile.yaml"
+      - mysql -u {{.DB_USER}} -p{{.DB_PASSWORD}}
+  show-db-variables:
+    desc: "Show DB variables"
+    cmds:
+      - mysql -u {{.DB_USER}} -p{{.DB_PASSWORD}} -e "SHOW VARIABLES"
 
-  mysql:
-    desc: "Connect to MySQL"
+  pt-query-digest:
+    desc: "Analyze slow query log"
     cmds:
-      - mysql -u {{.DB_USER}} -p{{.DB_PASSWORD}} --defaults-file={{.DB_CONFIG}}
+      - sudo pt-query-digest {{.DB_SLOW_LOG}} | cut -c 1000
+
+  alp:
+    desc: "Analyze access log"
+    cmds:
+      - sudo {{.ALP_PATH}} ltsv --file={{.NGINX_ACCESS_LOG}} --config={{.ALP_CONFIG}}
+  
+  restart:
+    desc: "Restart services"
+    cmds:
+      - sudo systemctl daemon-reload
+      - sudo systemctl restart {{.SERVICE_NAME}}
+      - sudo systemctl restart mysql
+      - sudo systemctl restart nginx
+
+  status:
+    desc: "Check status of services"
+    cmds:
+      - sudo systemctl status {{.SERVICE_NAME}}
+      - sudo systemctl status mysql
+      - sudo systemctl status nginx
+
+  deploy-conf:
+    desc: "Deploy configuration files (DB, Nginx, Service, env.sh)"
+    cmds:
+      - task: check-server-id
+      - task: deploy-db-conf
+      - task: deploy-nginx-conf
+      - task: deploy-service-conf
+      - task: deploy-env-file
+  
+  deploy-db-conf:
+    preconditions:
+      - task: check-server-id
+    cmds:
+      - sudo cp -r {{.GIT_DB_PATH}}/* {{.DB_PATH}}
+  
+  deploy-nginx-conf:
+    preconditions:
+      - task: check-server-id
+    cmds:
+      - sudo cp -r {{.GIT_NGINX_PATH}}/* {{.NGINX_PATH}}
+  
+  deploy-service-conf:
+    preconditions:
+      - task: check-server-id
+    cmds:
+      - sudo cp -r {{.GIT_SERVICE_PATH}}/* {{.SYSTEMD_PATH}}/{{.SERVICE_NAME}}
+  
+  deploy-env-file:
+    preconditions:
+      - task: check-server-id
+    cmds:
+      - cp {{.GIT_ENV_FILE}} $HOME/
+
+  get-conf:
+    desc: "Get configuration files (DB, Nginx, Service, env.sh)"
+    cmds:
+      - task: check-server-id
+      - task: get-db-conf
+      - task: get-nginx-conf
+      - task: get-service-conf
+      - task: get-env-file
+
+  get-db-conf:
+    preconditions:
+      - task: check-server-id
+    cmds:
+      - mkdir -p {{.GIT_DB_PATH}}
+      - sudo cp -r {{.DB_PATH}}/* {{.GIT_DB_PATH}}
+      - sudo chown -R {{.USER}}:{{.USER}} {{.GIT_DB_PATH}}
+
+  get-nginx-conf:
+    preconditions:
+      - task: check-server-id
+    cmds:
+      - mkdir -p {{.GIT_NGINX_PATH}}
+      - sudo cp -r {{.NGINX_PATH}}/* {{.GIT_NGINX_PATH}}
+      - sudo chown -R {{.USER}}:{{.USER}} {{.GIT_NGINX_PATH}}
+  
+  get-service-conf:
+    preconditions:
+      - task: check-server-id
+    cmds:
+      - mkdir -p {{.GIT_SERVICE_PATH}}
+      - sudo cp -r {{.SYSTEMD_PATH}}/{{.SERVICE_NAME}} {{.GIT_SERVICE_PATH}}
+      - sudo chown -R {{.USER}}:{{.USER}} {{.GIT_SERVICE_PATH}}
+
+  get-env-file:
+    preconditions:
+      - task: check-server-id
+    cmds:
+      - cp {{.ENV_FILE}} $HOME/$SERVER_ID/
+      - sudo chown -R {{.USER}}:{{.USER}} $HOME/$SERVER_ID
+
+  # Check for precondition
+  check-server-id:
+    preconditions:
+      - sh: '[ $SERVER_ID != "" ]'
+        msg: Env SERVER_ID is unset
+    cmd: echo "SERVER_ID = $SERVER_ID"
