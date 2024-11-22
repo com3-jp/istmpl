@@ -67,7 +67,7 @@ tasks:
     desc: "Analyze access log"
     cmds:
       - sudo {{.ALP_PATH}} ltsv --file={{.NGINX_ACCESS_LOG}} --config={{.ALP_CONFIG}}
-  
+
   restart:
     desc: "Restart services"
     cmds:
@@ -75,6 +75,7 @@ tasks:
       - sudo systemctl restart {{.SERVICE_NAME}}
       - sudo systemctl restart mysql
       - sudo systemctl restart nginx
+      - sudo systemctl restart netdata
 
   status:
     desc: "Check status of services"
@@ -82,6 +83,7 @@ tasks:
       - sudo systemctl status {{.SERVICE_NAME}}
       - sudo systemctl status mysql
       - sudo systemctl status nginx
+      - sudo systemctl status netdata
 
   deploy-conf:
     desc: "Deploy configuration files (DB, Nginx, Service, env.sh)"
