@@ -17,3 +17,13 @@ rm -rf alp_linux_amd64.zip alp
 
 echo "Install percona-toolkit"
 sudo apt-get install -y percona-toolkit
+
+echo "Install Netdata"
+wget -O /tmp/netdata-kickstart.sh https://get.netdata.cloud/kickstart.sh && sh /tmp/netdata-kickstart.sh
+
+cat << "EOF"
+  /\_/\
+ ( o.o )
+  > ^ <
+  Done!
+EOF

@@ -20,6 +20,10 @@ vars:
   ALP_PATH: $HOME/bin/alp
   ALP_CONFIG: $HOME/tools/alp/config.yml
 
+  # Netdata
+  NETDATA_PATH: /etc/netdata
+  NETDATA_WEBROOT_PATH: /var/lib/netdata/www/
+
   # DB
   DB_PATH: /etc/mysql
   DB_CONFIG: /etc/mysql/my.cnf
