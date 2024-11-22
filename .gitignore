@@ -1,0 +1,27 @@
+.vscode
+.idea
+.vim*
+
+.*
+!.gitignore
+!.gitkeep
+
+tmp
+pprof
+fgprof
+
+bin
+go
+local
+
+!webapp/go
+
+# 環境変数のファイル名に合わせること
+env.sh
+
+webapp/node/node_modules
+.cache
+webapp/php/vendor
+webapp/go/isupipe
+webapp/perl/local
+webapp/rust/target
