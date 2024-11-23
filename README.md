@@ -6,8 +6,8 @@
 
 1. それぞれのサーバーの .bashrc に環境変数 SERVER_ID を追加
   - export SERVER_ID=s1
-  - s2
-  - s4
+  - export SERVER_ID=s2
+  - export SERVER_ID=s3
 
 ### Git の初期化設定
 
